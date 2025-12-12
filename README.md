@@ -11,7 +11,6 @@ short_description: lottery-api
 
 # Hello Lottery 🚀
 
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
 
 **在线体验**: [https://koala9527-lottery.hf.space/](https://koala9527-lottery.hf.space/)
 
