@@ -1,0 +1,8 @@
+*.doc
+# checkouts
+venv
+.idea
+__pycache__
+models/__pycache__
+uploads/*
+checkouts/*

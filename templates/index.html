@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello Lottery - 智能彩票识别</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS (via CDN for simplicity as requested, though we will use custom CSS mostly) -->
+    <!-- Using custom CSS as primary, but utility classes can be helpful if needed. 
+         However, per instructions, I will stick to Vanilla CSS for maximum control unless requested otherwise.
+         I will use Vanilla CSS as planned. -->
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="logo">
+                <span class="icon">🎫</span>
+                <h1>Hello Lottery</h1>
+            </div>
+            <p class="subtitle">基于神经网络的智能彩票识别系统</p>
+        </header>
+
+        <main>
+            <div class="upload-section" id="upload-section">
+                <div class="upload-box" id="drop-zone">
+                    <input type="file" id="file-input" accept="image/*" hidden>
+                    <div class="upload-content">
+                        <div class="upload-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 16V8M12 8L9 11M12 8L15 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M3 15V19C3 19.5304 3.21071 20.0391 3.58579 20.4142C3.96086 20.7893 4.46957 21 5 21H19C19.5304 21 20.0391 20.7893 20.4142 20.4142C20.7893 20.0391 21 19.5304 21 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <h3>点击或拖拽上传彩票图片</h3>
+                        <p>支持双色球、大乐透</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-section hidden" id="preview-section">
+                <div class="image-container">
+                    <img id="preview-image" src="" alt="彩票预览">
+                    <div class="loading-overlay hidden" id="loading-overlay">
+                        <div class="spinner"></div>
+                        <p>正在识别中...</p>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button id="reupload-btn" class="btn btn-secondary">重新上传</button>
+                    <button id="predict-btn" class="btn btn-primary">开始识别</button>
+                </div>
+            </div>
+
+            <div class="result-section hidden" id="result-section">
+                <h2>识别结果</h2>
+                <div class="result-card">
+                    <pre id="result-content"></pre>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2025 Hello Lottery | Powered by AI</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
