@@ -5,4 +5,4 @@ venv
 __pycache__
 models/__pycache__
 uploads/*
-checkouts/*
+# checkouts/*
