@@ -10,12 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ 拉取代码
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           lfs: true
 
+      # 2️⃣ 校验 HF_TOKEN 是否存在（关键）
+      - name: Debug HF_TOKEN
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          echo "Checking HF_TOKEN..."
+          if [ -z "$HF_TOKEN" ]; then
+            echo "❌ HF_TOKEN is EMPTY"
+            echo "👉 请检查 GitHub Repo Settings → Secrets → Actions → HF_TOKEN"
+            exit 1
+          else
+            echo "✅ HF_TOKEN is PRESENT"
+          fi
+
+      # 3️⃣ 推送到 Hugging Face Space
       - name: Push to Hugging Face
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
