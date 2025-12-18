@@ -18,8 +18,6 @@ app.config.update(RESTFUL_JSON=dict(ensure_ascii=False))
 api = Api(app)
 
 
-
-
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -49,13 +47,12 @@ def base64predict():
                     break
             if not res:
                 raise MissingInfoException("没有检测到彩票信息，请调整图片后重试。")
-            print(res)
-            res = str(Result.fromTuple(res))
-            print(res)
+            
+            res_dict = Result.fromTuple(res).to_dict()
+            res = {'code': 200, 'msg': '识别成功','data': res_dict}
         except Exception as e:
             res = str(e)
-
-        res = {'code': 200, 'msg': '识别成功','data':res}
+            res = {'code': 500, 'msg': '识别失败', 'data': res}
     except:
         res = {'code': 501, 'msg': '程序错误'}
     return res
@@ -86,18 +83,12 @@ def upload():
                     break
             if not res:
                 raise MissingInfoException("没有检测到彩票信息，请调整图片后重试。")
-            print(res)
-            res = str(Result.fromTuple(res))
-            print(res)
-            res = {'code': 200, 'msg': '识别成功', 'data': res}
+            
+            res_dict = Result.fromTuple(res).to_dict()
+            res = {'code': 200, 'msg': '识别成功', 'data': res_dict}
         except Exception as e:
             res = str(e)
             res = {'code': 200, 'msg': '识别成功', 'data': res}
-        # preds=model_predict("C://l/c1.jpg",model)
-        # Process your result for human
-        # pred_class = preds.argmax(axis=-1)            # Simple argmax
-        # pred_class = decode_predictions(preds, top=1)   # ImageNet Decode
-        # result = str(pred_class[0][0][1])               # Convert to string
 
         return res
     return None

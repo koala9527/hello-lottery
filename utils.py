@@ -10,6 +10,10 @@ import torch
 from torchvision import transforms
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
+from PIL import Image
+import pillow_heif
+
+pillow_heif.register_heif_opener()
 
 log = logging.getLogger(__name__)
 
@@ -21,8 +25,13 @@ def imread(
 ):
     '''
     读取图像文件，解决cv2.imread()对非英文命名文件报错问题。
+    支持HEIC格式。
     '''
     try: 
+        if str(filename).lower().endswith('.heic'):
+            img = Image.open(filename)
+            img = cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR)
+            return img
         img = np.fromfile(filename, dtype)
         img = cv2.imdecode(img, flags)
         return img
@@ -258,6 +267,44 @@ def hit_check(numbers, winning_numbers):
     return hits
 
 
+
+def calculate_prize(code, hits, game_type):
+    prizes = []
+    if game_type == "single":
+        for hit in hits:
+            red_hit, blue_hit = hit
+            r = len(red_hit)
+            b = len(blue_hit)
+            prize = "未中奖"
+            money = 0
+            
+            if code == "ssq":
+                if r == 6 and b == 1: prize, money = "一等奖", -1
+                elif r == 6 and b == 0: prize, money = "二等奖", -1
+                elif r == 5 and b == 1: prize, money = "三等奖", 3000
+                elif (r == 5 and b == 0) or (r == 4 and b == 1): prize, money = "四等奖", 200
+                elif (r == 4 and b == 0) or (r == 3 and b == 1): prize, money = "五等奖", 10
+                elif b == 1: prize, money = "六等奖", 5
+            elif code == "cjdlt":
+                if r == 5 and b == 2: prize, money = "一等奖", -1
+                elif r == 5 and b == 1: prize, money = "二等奖", -1
+                elif r == 5 and b == 0: prize, money = "三等奖", 10000
+                elif r == 4 and b == 2: prize, money = "四等奖", 3000
+                elif r == 4 and b == 1: prize, money = "五等奖", 300
+                elif r == 3 and b == 2: prize, money = "六等奖", 200
+                elif r == 4 and b == 0: prize, money = "七等奖", 100
+                elif (r == 3 and b == 1) or (r == 2 and b == 2): prize, money = "八等奖", 15
+                elif (r == 3 and b == 0) or (r == 1 and b == 2) or (r == 2 and b == 1) or (r == 0 and b == 2): prize, money = "九等奖", 5
+            
+            money_str = f"{money}元" if money > 0 else ("浮动奖" if money == -1 else "0元")
+            prizes.append(f"{prize}({money_str})")
+    else:
+        # For other types, return empty or simple info
+        for _ in hits:
+            prizes.append("")
+    return prizes
+
+    
 class Result:
     '''
     要允许用户修改识别结果，就要有一个对应的数据结构作为“后台数据”和“前台表格”的桥梁。
@@ -333,10 +380,44 @@ class Result:
             else:
                 return ["中" + str(len(hit)) for hit in [self.hits[0][i] for i in [0, 1, 3]]]
     
+    def format_number(self, num, hit_list, color):
+        if num in hit_list:
+            return f"<span style='color: {color}; font-weight: bold'>{num}</span>"
+        return num
+
     def numbersWithHitsAndHeader(self):
         if not self.hits:
             return [header + "：" + num for header, num in zip(self.toHeaderList()[self.fixed_row:], self.numbersConvert())]
-        return [header + "：" + num + " (" + hit + ")" for header, num, hit in zip(self.toHeaderList()[self.fixed_row:], self.numbersConvert(), self.hitsConvert())]
+        
+        formatted_lines = []
+        prizes = calculate_prize(self.code, self.hits, self.game_type)
+        
+        for i, (numbers, hits) in enumerate(zip(self.numbers, self.hits)):
+            header = self.toHeaderList()[self.fixed_row + i]
+            
+            if self.game_type == "single":
+                red_nums, blue_nums = numbers
+                red_hits, blue_hits = hits
+                
+                red_str = " ".join([self.format_number(n, red_hits, "red") for n in red_nums])
+                blue_str = " ".join([self.format_number(n, blue_hits, "blue") for n in blue_nums])
+                
+                line = f"{header}：{red_str} + {blue_str}"
+                
+                # Add hit counts
+                hit_info = f"(中{len(red_hits)} + {len(blue_hits)})"
+                line += f" {hit_info}"
+                
+                # Add prize info
+                if prizes[i]:
+                    line += f" - {prizes[i]}"
+                
+                formatted_lines.append(line)
+            else:
+                # Fallback for other types
+                formatted_lines.append(f"{header}：{self.numbersConvert()[i]} {self.hitsConvert()[i]}")
+                
+        return formatted_lines
 
     def toHeaderList(self):
         if self.game_type in ["single", "compound"]:
@@ -413,11 +494,57 @@ class Result:
             target.clear()  # 号码保存在tuple中，不能直接修改，tuple中的元素是list，可以进行原位修改
             target.extend(splits)
             return True
-    
+
+    def to_dict(self):
+        prizes = calculate_prize(self.code, self.hits, self.game_type)
+        
+        # Format winning numbers
+        winning_data = None
+        if self.winning:
+            winning_data = {
+                "red": self.winning[0],
+                "blue": self.winning[1]
+            }
+
+        # Format user numbers with hit info
+        rows = []
+        for i, (numbers, hits) in enumerate(zip(self.numbers, self.hits)):
+            row_data = {
+                "header": self.toHeaderList()[self.fixed_row + i],
+                "prize": prizes[i] if i < len(prizes) else "",
+                "red": [],
+                "blue": []
+            }
+
+            if self.game_type == "single":
+                red_nums, blue_nums = numbers
+                red_hits, blue_hits = hits
+                
+                for n in red_nums:
+                    row_data["red"].append({"value": n, "isHit": n in red_hits})
+                for n in blue_nums:
+                    row_data["blue"].append({"value": n, "isHit": n in blue_hits})
+                    
+                row_data["hit_info"] = f"中{len(red_hits)}+{len(blue_hits)}"
+            else:
+                # Fallback for complex types
+                row_data["raw"] = self.numbersConvert()[i] + " " + self.hitsConvert()[i]
+            
+            rows.append(row_data)
+
+        return {
+            "code": self.code,
+            "name": self.codeConvert(self.code),
+            "issue": self.issue,
+            "game_type": self.gameConvert(self.game_type),
+            "winning_numbers": winning_data,
+            "rows": rows
+        }
+
     def __str__(self):
-        return f"彩票类型：{self.codeConvert(self.code)}\n" + f"开奖期：{self.issue}\n" \
-            + f"开奖号码：{self.winningConvert(self.winning) if self.winning else '未知'}\n"  \
-            + f"玩法：{self.gameConvert(self.game_type)}\n" + "\n".join(self.numbersWithHitsAndHeader())
+        return f"彩票类型：{self.codeConvert(self.code)}<br>" + f"开奖期：{self.issue}<br>" \
+            + f"开奖号码：{self.winningConvert(self.winning) if self.winning else '未知'}<br>"  \
+            + f"玩法：{self.gameConvert(self.game_type)}<br>" + "<br>".join(self.numbersWithHitsAndHeader())
 
      
 class TableModel(QtCore.QAbstractTableModel):
@@ -440,7 +567,7 @@ class TableModel(QtCore.QAbstractTableModel):
             if orientation == Qt.Orientation.Vertical:
                 return self.results.toHeaderList()[section]
             return "" 
-
+    
     def setData(self, index, value, role):
         if index.isValid() and role == Qt.ItemDataRole.EditRole:
             return self.results.setData(index, value)
@@ -449,6 +576,4 @@ class TableModel(QtCore.QAbstractTableModel):
     def flags(self, index):
         if index.isValid():
             return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable
-        return Qt.ItemFlag.NoItemFlags 
-
-   
+        return Qt.ItemFlag.NoItemFlags

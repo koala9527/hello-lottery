@@ -100,20 +100,112 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function displayResult(data) {
         resultSection.classList.remove('hidden');
-        // Format the output nicely
-        if (data.code === 200) {
-            try {
-                // Try to parse the inner data string if it looks like a stringified representation
-                // The backend returns 'data' as a string representation of the Result object or tuple
-                // We'll just display it as text for now, but could be improved if backend returned structured JSON
-                resultContent.textContent = data.data;
-            } catch (e) {
-                resultContent.textContent = JSON.stringify(data, null, 2);
+        resultContent.innerHTML = ''; // Clear previous results
+
+        if (data.code === 200 && typeof data.data === 'object') {
+            const resultData = data.data;
+
+            // Create Lottery Card
+            const card = document.createElement('div');
+            card.className = 'lottery-card';
+
+            // Header
+            const header = document.createElement('div');
+            header.className = 'lottery-header';
+            header.innerHTML = `
+                <div class="lottery-title">
+                    <span class="lottery-name">${resultData.name}</span>
+                    <span class="lottery-issue">第 ${resultData.issue} 期</span>
+                </div>
+                <div class="game-type">${resultData.game_type}</div>
+            `;
+            card.appendChild(header);
+
+            // Winning Numbers
+            if (resultData.winning_numbers) {
+                const winningSection = document.createElement('div');
+                winningSection.className = 'winning-section';
+                winningSection.innerHTML = '<div class="section-label">开奖号码</div>';
+
+                const ballsContainer = document.createElement('div');
+                ballsContainer.className = 'balls-container';
+
+                resultData.winning_numbers.red.forEach(num => {
+                    const ball = document.createElement('div');
+                    ball.className = 'ball red';
+                    ball.textContent = num;
+                    ballsContainer.appendChild(ball);
+                });
+
+                resultData.winning_numbers.blue.forEach(num => {
+                    const ball = document.createElement('div');
+                    ball.className = 'ball blue';
+                    ball.textContent = num;
+                    ballsContainer.appendChild(ball);
+                });
+
+                winningSection.appendChild(ballsContainer);
+                card.appendChild(winningSection);
             }
+
+            // User Ticket Rows
+            const ticketRows = document.createElement('div');
+            ticketRows.className = 'ticket-rows';
+            ticketRows.innerHTML = '<div class="section-label">识别结果</div>';
+
+            resultData.rows.forEach((row, index) => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'ticket-row';
+
+                // Index
+                const indexDiv = document.createElement('div');
+                indexDiv.className = 'row-index';
+                indexDiv.textContent = index + 1;
+                rowDiv.appendChild(indexDiv);
+
+                // Numbers
+                const numbersDiv = document.createElement('div');
+                numbersDiv.className = 'row-numbers';
+
+                row.red.forEach(item => {
+                    const ball = document.createElement('div');
+                    ball.className = `ball red ${item.isHit ? 'hit' : ''}`;
+                    ball.textContent = item.value;
+                    numbersDiv.appendChild(ball);
+                });
+
+                row.blue.forEach(item => {
+                    const ball = document.createElement('div');
+                    ball.className = `ball blue ${item.isHit ? 'hit' : ''}`;
+                    ball.textContent = item.value;
+                    numbersDiv.appendChild(ball);
+                });
+
+                rowDiv.appendChild(numbersDiv);
+
+                // Prize Info
+                const prizeDiv = document.createElement('div');
+                prizeDiv.className = 'prize-info';
+                const isWin = row.prize && row.prize !== '未中奖';
+                prizeDiv.innerHTML = `<span class="prize-badge ${isWin ? 'win' : 'lose'}">${row.prize || '未中奖'}</span>`;
+                rowDiv.appendChild(prizeDiv);
+
+                ticketRows.appendChild(rowDiv);
+            });
+
+            card.appendChild(ticketRows);
+            resultContent.appendChild(card);
+
         } else {
-            resultContent.textContent = `Error: ${data.msg}`;
+            // Error or fallback
+            resultContent.innerHTML = `<div class="error-message">${data.msg || '识别失败'}</div>`;
+            if (typeof data.data === 'string') {
+                const pre = document.createElement('pre');
+                pre.textContent = data.data;
+                resultContent.appendChild(pre);
+            }
         }
-        
+
         // Scroll to result
         resultSection.scrollIntoView({ behavior: 'smooth' });
     }
@@ -124,6 +216,6 @@ document.addEventListener('DOMContentLoaded', () => {
         uploadSection.classList.remove('hidden');
         previewSection.classList.add('hidden');
         resultSection.classList.add('hidden');
-        resultContent.textContent = '';
+        resultContent.innerHTML = '';
     }
 });

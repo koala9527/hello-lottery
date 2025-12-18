@@ -1,0 +1,25 @@
+name: Sync to Hugging Face hub
+
+on:
+  push:
+    branches: [main] # 只有当推送 main 分支时触发
+
+  # 允许手动触发同步
+  workflow_dispatch:
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          lfs: true # 如果你有大文件，开启 LFS
+
+      - name: Push to hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # 替换下面链接中的 <你的用户名> 和 <你的Space名字>
+          git push --force https://koala9527:$HF_TOKEN@huggingface.co/spaces/koala9527/lottery main
