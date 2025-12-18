@@ -103,8 +103,8 @@ def number_process(numbers, code):
 
     first_line = numbers[0].strip()
 
-    pattern1 = re.compile("\d+")    # 匹配数字
-    pattern2 = re.compile("\*\d+$|\(.*\)|") # 匹配倍数，用于从号码中删除倍数
+    pattern1 = re.compile(r"\d+")    # 匹配数字
+    pattern2 = re.compile(r"\*\d+$|\(.*\)|") # 匹配倍数，用于从号码中删除倍数
 
     def match_fill(string):
         matched = pattern1.findall(string)
@@ -218,7 +218,7 @@ def issue_process(issue_string):
     '''
     开奖/销售期处理。
     '''
-    issue = re.findall("\d+", issue_string)
+    issue = re.findall(r"\d+", issue_string)
     if len(issue) > 1:
         return
     return issue[0]
@@ -227,7 +227,7 @@ def winning_process(winning_number, code):
     '''
     中奖号码处理。
     '''
-    pattern = re.compile("\d+")
+    pattern = re.compile(r"\d+")
     matched = pattern.findall(winning_number)
     if len(matched) < 7:
         raise MissingInfoException("Matched numbers not enough.")
@@ -296,7 +296,16 @@ def calculate_prize(code, hits, game_type):
                 elif (r == 3 and b == 1) or (r == 2 and b == 2): prize, money = "八等奖", 15
                 elif (r == 3 and b == 0) or (r == 1 and b == 2) or (r == 2 and b == 1) or (r == 0 and b == 2): prize, money = "九等奖", 5
             
-            money_str = f"{money}元" if money > 0 else ("浮动奖" if money == -1 else "0元")
+            if money == -1:
+                if "一等奖" in prize:
+                    money_str = "约500万-1000万"
+                elif "二等奖" in prize:
+                    money_str = "约5万-500万"
+                else:
+                    money_str = "浮动奖"
+            else:
+                money_str = f"{money}元" if money > 0 else "0元"
+            
             prizes.append(f"{prize}({money_str})")
     else:
         # For other types, return empty or simple info
