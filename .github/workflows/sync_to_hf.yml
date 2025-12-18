@@ -9,7 +9,6 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    environment: production   # ← 和你 Environment 名字一致
 
     steps:
       - name: Checkout repo
